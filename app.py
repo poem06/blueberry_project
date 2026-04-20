@@ -5,7 +5,7 @@
 @File    : app.py.py
 @Author  : 王诗哲
 @Date    : 2026/4/20
-@Desc    : 面向用户端
+@Desc    : 面向用户端应用
 """
 import pandas as pd
 import joblib

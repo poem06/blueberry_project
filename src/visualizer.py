@@ -5,7 +5,7 @@
 @File    : visualizer.py
 @Author  : 王诗哲
 @Date    : 2026/4/20
-@Desc    : 用于可视化图表
+@Desc    : 多模型可视化对比
 """
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -139,3 +139,113 @@ def plot_multi_model_comparison(y_true, predictions_dict, save_dir, sample_size=
 
     plt.savefig(f"{save_dir}/multi_model_comparison.png", dpi=300)
     plt.close()
+
+
+def plot_actual_vs_predicted_scatter(y_true, y_pred, model_name, save_dir):
+    """
+    绘制 真实值 vs 预测值 的散点对角线图 (包含拟合趋势线)
+    """
+    os.makedirs(save_dir, exist_ok=True)
+
+    plt.figure(figsize=(8, 8))
+
+    # 1. 绘制基础散点
+    # 使用较小的透明度 (alpha)，以便看清点的密集程度
+    plt.scatter(y_true, y_pred, alpha=0.3, color='royalblue', edgecolors='none', label='预测样本')
+
+    # 2. 计算并绘制 完美对角线 (Y = X)
+    # 找到真实值和预测值中的最大最小值，作为对角线的两端
+    min_val = min(np.min(y_true), np.min(y_pred))
+    max_val = max(np.max(y_true), np.max(y_pred))
+
+    # 为了图表美观，给两端留出 5% 的余量
+    margin = (max_val - min_val) * 0.05
+    plt.plot([min_val - margin, max_val + margin],
+             [min_val - margin, max_val + margin],
+             color='red', linestyle='--', linewidth=2, label='完美预测线 (Y = X)')
+
+    # 3. 计算并绘制 实际拟合趋势线
+    # 用多项式拟合一条直线，看看模型整体的预测趋势是不是偏离了对角线
+    z = np.polyfit(y_true, y_pred, 1)
+    p = np.poly1d(z)
+
+    # 生成一条平滑的线
+    x_trend = np.linspace(min_val, max_val, 100)
+    plt.plot(x_trend, p(x_trend), color='darkorange', linewidth=2, label=f'实际拟合趋势线')
+
+    # 4. 图表修饰
+    plt.xlabel('真实蓝莓产量 (Actual Yield)', fontsize=12)
+    plt.ylabel('模型预测产量 (Predicted Yield)', fontsize=12)
+    plt.title(f'{model_name} - 真实值 vs 预测值 散点诊断图', fontsize=14, pad=15)
+
+    plt.gca().set_aspect('equal', adjustable='box')
+
+    plt.xlim(min_val - margin, max_val + margin)
+    plt.ylim(min_val - margin, max_val + margin)
+
+    plt.legend(loc='upper left', fontsize=11)
+    plt.grid(True, alpha=0.5)
+
+    # 保存图片
+    save_path = os.path.join(save_dir, f"{model_name}_actual_vs_predicted.png")
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"   [Plot] 散点诊断图已保存至: {save_path}")
+
+
+def plot_error_cdf_comparison(y_true, predictions_dict, save_dir):
+    """
+    绘制多模型绝对误差累积分布函数图 (Error CDF)
+    用于直观对比多个模型的整体预测精度和稳定性。
+    """
+    os.makedirs(save_dir, exist_ok=True)
+    plt.figure(figsize=(10, 7))
+
+    y_true = np.array(y_true)
+
+    # 定义统一的配色方案
+    palette = {'LGBM': 'seagreen', 'RF': 'orange', 'XGB': 'crimson'}
+    line_styles = {'LGBM': '-', 'RF': '--', 'XGB': '-.'}
+
+    for m_name, m_preds in predictions_dict.items():
+        # 1. 计算绝对误差
+        abs_errors = np.abs(y_true - np.array(m_preds))
+
+        # 2. 对绝对误差进行排序
+        sorted_errors = np.sort(abs_errors)
+
+        # 3. 计算累积概率 (CDF)
+        # 例如，第 i 个排序后的误差，它覆盖了 i / N 的样本比例
+        cdf = np.arange(1, len(sorted_errors) + 1) / len(sorted_errors)
+
+        m_name_upper = m_name.upper()
+        plt.plot(sorted_errors, cdf,
+                 label=f'{m_name_upper}',
+                 color=palette.get(m_name_upper, 'blue'),
+                 linestyle=line_styles.get(m_name_upper, '-'),
+                 linewidth=2.5)
+
+    # 4. 图表修饰
+    plt.xlabel('绝对预测误差 (Absolute Error)', fontsize=12)
+    plt.ylabel('累积样本比例 (Cumulative Proportion)', fontsize=12)
+    plt.title('多模型绝对误差累积分布对比 (Error CDF)', fontsize=14, pad=15)
+
+    # 设置网格，方便读取数值
+    plt.grid(True, linestyle=':', alpha=0.7)
+
+    # 限制 X 轴的显示范围，去掉极端的长尾数据，只看核心对比区
+    # 假设你的数据集中，95%的误差都在 1500 以内，我们可以将 X 轴限制在 2000
+    # 这里通过所有模型误差的 95 分位数来动态设置 X 轴上限
+    all_errors = np.concatenate([np.abs(y_true - np.array(preds)) for preds in predictions_dict.values()])
+    x_max = np.percentile(all_errors, 95)
+    plt.xlim(0, x_max * 1.2)  # 留一点余量
+    plt.ylim(0, 1.05)
+
+    # 添加图例和说明
+    plt.legend(loc='lower right', fontsize=11, title='曲线越靠左上方，模型越优秀')
+
+    # 保存图片
+    save_path = os.path.join(save_dir, "multi_model_error_cdf.png")
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"   [Plot] 误差CDF对比图已保存至: {save_path}")

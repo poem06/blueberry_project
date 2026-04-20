@@ -5,7 +5,7 @@
 @File    : main.py
 @Author  : 王诗哲
 @Date    : 2026/4/20
-@Desc    : 用于蓝莓产量预测模型训练代码
+@Desc    : 主逻辑函数
 """
 
 import os
@@ -15,7 +15,8 @@ from src.models.rf_model import train_rf
 from src.models.xgb_model import train_xgb
 from src.models.lgbm_model import train_lgbm
 from src.evaluator import evaluate_model, print_comparison_report
-from src.visualizer import plot_multi_model_comparison, plot_residuals, plot_feature_importance
+from src.visualizer import (plot_multi_model_comparison, plot_residuals,
+                            plot_feature_importance, plot_actual_vs_predicted_scatter, plot_error_cdf_comparison)
 
 
 def main():
@@ -63,12 +64,17 @@ def main():
         plot_dir = cfg['project']['plot_dir']
         plot_residuals(y_val, preds, m_type.upper(), plot_dir)
         plot_feature_importance(model, X_train.columns, m_type.upper(), plot_dir)
+        plot_actual_vs_predicted_scatter(y_val, preds, m_type.upper(), plot_dir)
 
     # 3. 打印对比报告
     print_comparison_report(results_list)
 
     # 4. 终极对比曲线
     plot_multi_model_comparison(y_val, all_predictions, cfg['project']['plot_dir'])
+
+    if len(all_predictions) > 1:
+        print(f"\n[Visual] 正在进行多模型横向评测，绘制对比图...")
+        plot_error_cdf_comparison(y_val, all_predictions, cfg['project']['plot_dir'])
 
     print("\n" + "=" * 50)
     print(f"最佳模型: {best_model_name}")

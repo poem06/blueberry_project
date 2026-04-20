@@ -5,7 +5,7 @@
 @File    : evaluator.py
 @Author  : 王诗哲
 @Date    : 2026/4/20
-@Desc    : 用于评估算法
+@Desc    : 使用五种指标评估算法
 """
 import numpy as np
 import pandas as pd
@@ -44,7 +44,5 @@ def print_comparison_report(results_list):
 
     print("\n" + "=" * 75)
     print(" 蓝莓产量预测模型性能对比报告 (Model Comparison) ".center(75, "="))
-    print("=" * 75)
-    # 使用 to_markdown 打印出漂亮的表格
     print(df_results.to_markdown())
-    print("=" * 75 + "\n")
+    print("\n")

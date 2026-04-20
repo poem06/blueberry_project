@@ -5,7 +5,7 @@
 @File    : lgbm_model.py
 @Author  : 王诗哲
 @Date    : 2026/4/20
-@Desc    : 用于蓝莓产量预测模型训练代码
+@Desc    : 梯度随机树训练
 """
 import lightgbm as lgb
 from sklearn.model_selection import RandomizedSearchCV

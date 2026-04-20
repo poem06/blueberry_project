@@ -5,7 +5,7 @@
 @File    : rf_model.py
 @Author  : 王诗哲
 @Date    : 2026/4/20
-@Desc    : 随机森林回归训练
+@Desc    : 随机森林训练
 """
 
 from sklearn.ensemble import RandomForestRegressor
